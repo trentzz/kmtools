@@ -19,6 +19,9 @@ def run_chunk(args):
     Chunk(
         threads=args.threads,
         km_find_mutation_options=args.km_find_mutation_options,
+        km_target_directory=args.km_target_directory,
+        km_jellyfish_file=args.km_jellyfish_file,
+        output_dir=args.output_dir,
         merge=args.merge,
         verbose=args.verbose,
     ).run()
@@ -65,6 +68,9 @@ def run_all(args):
     chunk = Chunk(
         threads=args.threads,
         km_find_mutation_options=args.km_find_mutation_options,
+        km_target_directory=args.km_target_directory,
+        km_jellyfish_file=args.km_jellyfish_file,
+        output_dir=args.output_dir,
         merge=True,  # runall always merges
         verbose=args.verbose,
     )
@@ -124,6 +130,24 @@ def main():
         help="Options for km-find-mutation",
     )
     chunk_parser.add_argument(
+        "--km-target-directory",
+        type=str,
+        required=True,
+        help="Directory for km-find-mutation target directory",
+    )
+    chunk_parser.add_argument(
+        "--km-jellyfish-file",
+        type=str,
+        required=True,
+        help="Path to the jellyfish k-mer counts file",
+    )
+    chunk_parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=".",
+        help="Directory to save output files",
+    )
+    chunk_parser.add_argument(
         "--merge", action="store_true", help="Merge chunks after processing"
     )
     chunk_parser.set_defaults(func=run_chunk)
@@ -177,6 +201,18 @@ def main():
         type=str,
         required=True,
         help="Options for km-find-mutation",
+    )
+    runall_parser.add_argument(
+        "--km-target-directory",
+        type=str,
+        required=True,
+        help="Directory for km-find-mutation target directory",
+    )
+    runall_parser.add_argument(
+        "--km-jellyfish-file",
+        type=str,
+        required=True,
+        help="Path to the jellyfish k-mer counts file",
     )
 
     # Merge step
