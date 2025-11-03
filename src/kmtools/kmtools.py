@@ -22,7 +22,10 @@ def run_chunk(args):
         km_target_directory=args.km_target_directory,
         km_jellyfish_file=args.km_jellyfish_file,
         output_dir=args.output_dir,
+        prefix=args.prefix,
         merge=args.merge,
+        merge_output=args.merge_output,
+        merge_keep=args.merge_keep,
         verbose=args.verbose,
     ).run()
 
@@ -33,13 +36,17 @@ def run_filter(args):
         reference=args.reference,
         km_output=args.km_output,
         output=args.output,
+        output_type=args.output_type,
+        count_threshold=args.count_threshold,
         verbose=args.verbose,
     ).run()
 
 
 def run_merge(args):
     Utils.log(f"Running merge with args: {args}", args.verbose)
-    Merge(inputs=args.inputs, output=args.output, verbose=args.verbose).run()
+    Merge(
+        inputs=args.inputs, output=args.output, keep=args.keep, verbose=args.verbose
+    ).run()
 
 
 def run_plot(args):
@@ -78,15 +85,20 @@ def run_all(args):
 
     # --- Step 2: Merge ---
     merge = Merge(
-        inputs=args.merge_inputs, output=args.merge_output, verbose=args.verbose
+        inputs=args.merge_inputs,
+        output=args.merge_output,
+        keep=args.keep,
+        verbose=args.verbose,
     )
     merge.run()
 
     # --- Step 3: Filter ---
     filter_step = Filter(
         reference=args.reference,
-        km_output=args.merge_output,
-        output=args.filtered_output,
+        km_output=args.km_output,
+        output=args.output,
+        output_type=args.output_type,
+        count_threshold=args.count_threshold,
         verbose=args.verbose,
     )
     filter_step.run()
@@ -150,6 +162,23 @@ def main():
     chunk_parser.add_argument(
         "--merge", action="store_true", help="Merge chunks after processing"
     )
+    chunk_parser.add_argument(
+        "--prefix",
+        type=str,
+        default="km_find_mutation_output",
+        help='Prefix for output files (default: "km_find_mutation_output")',
+    )
+    chunk_parser.add_argument(
+        "--merge-output",
+        type=str,
+        default="km_find_mutation_merged_output.txt",
+        help='Filename for merged output when --merge is used (default: "km_find_mutation_merged_output.txt")',
+    )
+    chunk_parser.add_argument(
+        "--merge-keep",
+        action="store_true",
+        help="Keep intermediate chunk files when merging",
+    )
     chunk_parser.set_defaults(func=run_chunk)
 
     # --- merge ---
@@ -159,6 +188,9 @@ def main():
     )
     merge_parser.add_argument(
         "--output", type=str, required=True, help="Merged output file"
+    )
+    merge_parser.add_argument(
+        "--keep", action="store_true", help="Keep input files after merging"
     )
     merge_parser.set_defaults(func=run_merge)
 
@@ -172,6 +204,19 @@ def main():
     )
     filter_parser.add_argument(
         "--output", type=str, required=True, help="Filtered output file"
+    )
+    filter_parser.add_argument(
+        "--output-type",
+        type=str,
+        choices=["tsv", "csv", "xlsx"],
+        default="tsv",
+        help='Output file type (default: "tsv")',
+    )
+    filter_parser.add_argument(
+        "--count-threshold",
+        type=int,
+        default=2,
+        help="Minimum k-mer count threshold for filtering (default: 2)",
     )
     filter_parser.set_defaults(func=run_filter)
 
