@@ -45,7 +45,12 @@ def run_filter(args):
 def run_merge(args):
     Utils.log(f"Running merge with args: {args}", args.verbose)
     Merge(
-        inputs=args.inputs, output=args.output, keep=args.keep, verbose=args.verbose
+        inputs=args.inputs,
+        output=args.output,
+        keep=args.keep,
+        sort_by=getattr(args, "sort_by", None),
+        drop_duplicates=getattr(args, "drop_duplicates", False),
+        verbose=args.verbose,
     ).run()
 
 
@@ -191,6 +196,17 @@ def main():
     )
     merge_parser.add_argument(
         "--keep", action="store_true", help="Keep input files after merging"
+    )
+    merge_parser.add_argument(
+        "--sort-by",
+        type=str,
+        default=None,
+        help="Sort merged output by this column name",
+    )
+    merge_parser.add_argument(
+        "--drop-duplicates",
+        action="store_true",
+        help="Remove duplicate rows from merged output",
     )
     merge_parser.set_defaults(func=run_merge)
 
