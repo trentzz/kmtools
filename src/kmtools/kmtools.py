@@ -14,7 +14,7 @@ from kmtools.utils import Utils
 # === Subcommand Functions ===
 
 
-def run_chunk(args):
+def run_chunk(args: argparse.Namespace) -> None:
     Utils.log(f"Running chunk with args: {args}", args.verbose)
     Chunk(
         threads=args.threads,
@@ -30,7 +30,7 @@ def run_chunk(args):
     ).run()
 
 
-def run_filter(args):
+def run_filter(args: argparse.Namespace) -> None:
     Utils.log(f"Running filter with args: {args}", args.verbose)
     Filter(
         reference=args.reference,
@@ -42,14 +42,14 @@ def run_filter(args):
     ).run()
 
 
-def run_merge(args):
+def run_merge(args: argparse.Namespace) -> None:
     Utils.log(f"Running merge with args: {args}", args.verbose)
     Merge(
         inputs=args.inputs, output=args.output, keep=args.keep, verbose=args.verbose
     ).run()
 
 
-def run_plot(args):
+def run_plot(args: argparse.Namespace) -> None:
     Utils.log(f"Running plot with args: {args}", args.verbose)
     Plot(
         file=args.file,
@@ -59,7 +59,7 @@ def run_plot(args):
     ).run()
 
 
-def run_all(args):
+def run_all(args: argparse.Namespace) -> None:
     """
     Runs the entire workflow:
     1. chunk
@@ -118,7 +118,7 @@ def run_all(args):
 # === CLI Setup ===
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         prog="kmtools",
         description="kmtools: run, filter, merge, and plot km find_mutation results.",
