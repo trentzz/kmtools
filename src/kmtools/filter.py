@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from kmtools.exceptions import FileValidationError, FilterError
 from kmtools.filter_types import (
     FilterCondition,
     FilterResult,
@@ -5,7 +8,6 @@ from kmtools.filter_types import (
     TargetSequenceLocation,
 )
 from kmtools.utils import Utils
-import csv
 import pandas as pd
 
 
@@ -23,22 +25,34 @@ class Filter:
         self.reference_df = None
         self.km_output_df = None
 
-        # Take sample name from km_output filename
-        self.sample_name = self.km_output.split("/")[-1].split(".")[0]
+        # Extract sample name from km_output filename using Path for robustness
+        self.sample_name = Path(self.km_output).stem
         self.output_df = []
 
     def run(self):
         Utils.log(
             f"Filtering {self.km_output} using reference {self.reference}", self.verbose
         )
+        self._validate_input_files()
         self.verify_reference()
         self.verify_km_output()
 
         self.run_filtering()
-        
+
         self.write_output()
 
         print(f"Filtered results written to {self.output}")
+
+    def _validate_input_files(self):
+        """Check that input files exist before attempting to read them."""
+        if not Path(self.reference).exists():
+            raise FileValidationError(
+                f"Reference file not found: {self.reference}"
+            )
+        if not Path(self.km_output).exists():
+            raise FileValidationError(
+                f"KM output file not found: {self.km_output}"
+            )
 
     def get_ref_alt_pos_from_variant(self, variant_name) -> KmVariant:
         if not isinstance(variant_name, str) or variant_name.strip() == "":
@@ -190,17 +204,17 @@ class Filter:
         required = {"CHROM", "POS", "REF", "ALT", "TYPE"}
 
         if self.reference.endswith(".csv"):
-            # Read CSV file
             self.reference_df = pd.read_csv(self.reference)
         elif self.reference.endswith(".tsv"):
-            # Read TSV file
             self.reference_df = pd.read_csv(self.reference, sep="\t")
         else:
-            raise ValueError("Unsupported file format: Must be .csv or .tsv")
+            raise FileValidationError(
+                f"Unsupported reference file format: {self.reference}. Must be .csv or .tsv"
+            )
 
         if not required.issubset(self.reference_df.columns):
             missing = required - set(self.reference_df.columns)
-            raise ValueError(
+            raise FilterError(
                 f"Reference file is missing required columns: {', '.join(sorted(missing))}"
             )
 
@@ -231,7 +245,7 @@ class Filter:
 
         if not required.issubset(self.km_output_df.columns):
             missing = required - set(self.km_output_df.columns)
-            raise ValueError(
+            raise FilterError(
                 f"KM output file is missing required columns: {', '.join(sorted(missing))}"
             )
 
