@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import glob as globmod
 from pathlib import Path
 
@@ -8,7 +10,13 @@ from kmtools.utils import Utils
 
 
 class Merge:
-    def __init__(self, inputs, output, keep=False, verbose=False):
+    def __init__(
+        self,
+        inputs: list[str],
+        output: str,
+        keep: bool = False,
+        verbose: bool = False,
+    ) -> None:
         self.inputs = inputs
         self.output = Path(output)
         self.keep = keep

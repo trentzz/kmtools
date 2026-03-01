@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
 import shlex
 from pathlib import Path
@@ -12,17 +14,17 @@ from kmtools.merge import Merge
 class Chunk:
     def __init__(
         self,
-        threads,
-        km_find_mutation_options,
-        km_target_directory,
-        km_jellyfish_file,
-        output_dir,
-        prefix="km_find_mutation_output",
-        merge=False,
-        merge_output="km_find_mutation_merged_output.txt",
-        merge_keep=False,
-        verbose=False,
-    ):
+        threads: int,
+        km_find_mutation_options: str,
+        km_target_directory: str,
+        km_jellyfish_file: str,
+        output_dir: str,
+        prefix: str = "km_find_mutation_output",
+        merge: bool = False,
+        merge_output: str = "km_find_mutation_merged_output.txt",
+        merge_keep: bool = False,
+        verbose: bool = False,
+    ) -> None:
         self.threads = threads
         self.km_options = km_find_mutation_options
         self.km_target_directory = km_target_directory
@@ -34,7 +36,7 @@ class Chunk:
         self.merge_keep = merge_keep
         self.verbose = verbose
 
-        self.km_target_directory_subfolder = []
+        self.km_target_directory_subfolder: list[Path] = []
 
     def run(self) -> None:
         Utils.log(f"Starting Chunk with {self.threads} threads", self.verbose)
@@ -44,14 +46,12 @@ class Chunk:
         self._ensure_output_dir()
         self.check_target_files_split_correctly()
 
-        # Validate jellyfish file exists
         jf_path = Path(self.km_jellyfish_file)
         if not jf_path.exists():
             raise ChunkValidationError(
                 f"Jellyfish file not found: {self.km_jellyfish_file}"
             )
 
-        # Run km instances in parallel
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             futures = [
                 executor.submit(self.run_km, i, sub)
@@ -63,7 +63,6 @@ class Chunk:
         if self.merge:
             self.merge_outputs()
 
-            # Optionally remove the output directory if empty
             output_dir_path = Path(self.output_dir)
             if output_dir_path.exists() and output_dir_path.is_dir():
                 try:
@@ -74,13 +73,12 @@ class Chunk:
                     Utils.log(f"Could not remove directory {output_dir_path}: {e}", self.verbose)
 
     def _ensure_output_dir(self) -> None:
-        """Create output directory if it doesn't exist."""
         output_path = Path(self.output_dir)
         if not output_path.exists():
             Utils.log(f"Creating output directory: {output_path}", self.verbose)
             output_path.mkdir(parents=True, exist_ok=True)
 
-    def run_km(self, thread_num, target_subfolder):
+    def run_km(self, thread_num: int, target_subfolder: Path) -> None:
         output_file = Path(self.output_dir) / f"{self.prefix}_{thread_num}.txt"
 
         cmd = (
@@ -88,8 +86,6 @@ class Chunk:
             + shlex.split(self.km_options)
             + [str(target_subfolder), self.km_jellyfish_file]
         )
-
-        Utils.log(f"Thread {thread_num}: running {' '.join(cmd)}", self.verbose)
 
         with open(output_file, "w", encoding="utf-8") as f:
             subprocess.run(cmd, stdout=f, check=True)
@@ -110,20 +106,13 @@ class Chunk:
             )
 
         file_counts = [len(list(d.glob("*"))) for d in subfolders]
-
-        if any(c == 0 for c in file_counts):
-            raise ChunkValidationError(
-                f"Empty subfolder(s) detected. File counts: {file_counts}"
-            )
-
         avg_count = sum(file_counts) / len(file_counts)
         max_deviation = avg_count * 0.2
 
         for count in file_counts:
             if abs(count - avg_count) > max_deviation:
                 raise ChunkValidationError(
-                    f"Uneven file distribution detected in split folders. "
-                    f"Counts: {file_counts}"
+                    f"Uneven file distribution detected in split folders. Counts: {file_counts}"
                 )
 
         self.km_target_directory_subfolder = sorted(subfolders)
@@ -132,8 +121,7 @@ class Chunk:
         km_path = shutil.which("km")
         if km_path is None:
             raise KmNotFoundError(
-                "'km' command not found in PATH. "
-                "Install it with: pipx install km-walk"
+                "'km' command not found in PATH. Please install it or ensure it's accessible."
             )
 
         try:
@@ -154,9 +142,7 @@ class Chunk:
                 "'km --help' timed out. Check that km is installed correctly."
             ) from exc
         except Exception as e:
-            raise KmNotFoundError(
-                f"Unexpected error when checking 'km': {e}"
-            ) from e
+            raise KmNotFoundError(f"Unexpected error when checking 'km': {e}") from e
 
         if result.returncode != 0:
             raise KmNotFoundError(
