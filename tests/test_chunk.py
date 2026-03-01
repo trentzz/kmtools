@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from kmtools.chunk import Chunk
+from kmtools.exceptions import KmNotFoundError, ChunkValidationError
 
 
 @pytest.fixture
@@ -42,19 +43,19 @@ class TestCheckKmInstalled:
 
     @patch("shutil.which", return_value=None)
     def test_km_not_found(self, mock_which, chunk_instance):
-        with pytest.raises(RuntimeError, match="not found in PATH"):
+        with pytest.raises(KmNotFoundError, match="not found in PATH"):
             chunk_instance.check_km_installed()
 
     @patch("shutil.which", return_value="/usr/bin/km")
     @patch("subprocess.run", side_effect=FileNotFoundError)
     def test_km_executable_missing(self, mock_run, mock_which, chunk_instance):
-        with pytest.raises(RuntimeError, match="could not be found"):
+        with pytest.raises(KmNotFoundError, match="could not be found"):
             chunk_instance.check_km_installed()
 
     @patch("shutil.which", return_value="/usr/bin/km")
     @patch("subprocess.run", side_effect=TimeoutError)
     def test_km_timeout(self, mock_run, mock_which, chunk_instance):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(KmNotFoundError):
             chunk_instance.check_km_installed()
 
 
@@ -78,7 +79,7 @@ class TestCheckTargetFilesSplitCorrectly:
             km_jellyfish_file="db.jf",
             output_dir=".",
         )
-        with pytest.raises(RuntimeError, match="Expected 4 split folders"):
+        with pytest.raises(ChunkValidationError, match="Expected 4 split folders"):
             chunk.check_target_files_split_correctly()
 
     def test_uneven_distribution(self, tmp_path):
@@ -99,7 +100,7 @@ class TestCheckTargetFilesSplitCorrectly:
             km_jellyfish_file="db.jf",
             output_dir=".",
         )
-        with pytest.raises(RuntimeError, match="Uneven file distribution"):
+        with pytest.raises(ChunkValidationError, match="Uneven file distribution"):
             chunk.check_target_files_split_correctly()
 
     def test_nonexistent_directory(self):
@@ -110,7 +111,7 @@ class TestCheckTargetFilesSplitCorrectly:
             km_jellyfish_file="db.jf",
             output_dir=".",
         )
-        with pytest.raises(RuntimeError, match="does not exist"):
+        with pytest.raises(ChunkValidationError, match="does not exist"):
             chunk.check_target_files_split_correctly()
 
 

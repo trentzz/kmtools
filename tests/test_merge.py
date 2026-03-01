@@ -5,6 +5,7 @@ import pandas as pd
 from pathlib import Path
 
 from kmtools.merge import Merge
+from kmtools.exceptions import MergeError
 
 
 class TestMergeRun:
@@ -92,8 +93,7 @@ class TestMergeRun:
     def test_merge_no_matching_files(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         output = tmp_path / "merged.txt"
-        # Current implementation will concat empty list which raises ValueError
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             Merge(
                 inputs=["nonexistent_*.txt"],
                 output=str(output),

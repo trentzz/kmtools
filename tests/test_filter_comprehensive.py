@@ -32,11 +32,11 @@ class TestGetRefAltPosFromVariant:
 
     def test_empty_string(self, filter_instance):
         result = filter_instance.get_ref_alt_pos_from_variant("")
-        assert result == (None, None, None, None)
+        assert result is None
 
     def test_none_input(self, filter_instance):
         result = filter_instance.get_ref_alt_pos_from_variant(None)
-        assert result == (None, None, None, None)
+        assert result is None
 
 
 class TestGetKmAlt:
