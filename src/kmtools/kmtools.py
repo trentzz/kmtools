@@ -38,6 +38,7 @@ def run_filter(args):
         output=args.output,
         output_type=args.output_type,
         count_threshold=args.count_threshold,
+        use_alt=getattr(args, "use_alt", False),
         verbose=args.verbose,
     ).run()
 
@@ -217,6 +218,12 @@ def main():
         type=int,
         default=2,
         help="Minimum k-mer count threshold for filtering (default: 2)",
+    )
+    filter_parser.add_argument(
+        "--use-alt",
+        action="store_true",
+        help="Use alternate sequence mode: reference file should have CHROM, ALT_SEQUENCE, TYPE columns "
+             "instead of CHROM, POS, REF, ALT, TYPE. Matches km sequences directly against provided ALT_SEQUENCE.",
     )
     filter_parser.set_defaults(func=run_filter)
 
