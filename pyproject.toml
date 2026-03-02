@@ -1,24 +1,47 @@
 [project]
 name = "kmtools"
 version = "0.1.0"
-description = ""
+description = "A toolkit for running, filtering, merging, and plotting km find_mutation results."
 authors = [
     {name = "Trent Zeng",email = "trentzz.dev@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+keywords = ["bioinformatics", "km", "variant-calling", "genomics", "mutations"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
-    "pytest (>=8.4.2,<9.0.0)",
-    "argparse (>=1.4.0,<2.0.0)",
     "pandas (>=2.3.3,<3.0.0)",
     "matplotlib (>=3.10.8,<4.0.0)"
 ]
 
+[project.urls]
+Homepage = "https://github.com/trentzz/kmtools"
+Repository = "https://github.com/trentzz/kmtools"
+"Bug Tracker" = "https://github.com/trentzz/kmtools/issues"
+Documentation = "https://github.com/trentzz/kmtools/tree/main/docs"
+
 [tool.poetry]
 packages = [{include = "kmtools", from = "src"}]
 
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.4.2,<9.0.0"
+
 [project.scripts]
 kmtools = "kmtools.kmtools:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

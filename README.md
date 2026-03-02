@@ -1,30 +1,42 @@
 # kmtools
 
-A collection of utilities extending the functionality of [`km`](https://github.com/iric-soft/km), providing parallelisation, filtering, merging, and plotting of `km find_mutation` results.
+A toolkit for running, filtering, merging, and plotting [`km find_mutation`](https://github.com/iric-soft/km) results.
 
-`kmtools` is designed to streamline large-scale `km` workflows by allowing you to:
+`kmtools` streamlines large-scale `km` workflows by allowing you to:
 
 - Run `km find_mutation` across multiple threads via target sequence chunking
-- Merge and filter results
+- Merge multiple output files into a single result
+- Filter results against a reference variant list (with optional `--use-alt` mode)
 - Generate summary plots for downstream analysis
 
 ---
 
 ## Installation
 
-### Using pipx (recommended)
+### From PyPI
 
 ```bash
-pipx install git+https://github.com/trentzz/kmtools
-````
+pip install kmtools
+```
 
-This tool may eventually be published to PyPI.
-Using `pipx` is recommended to isolate `kmtools` from your system Python environment.
+### Using pipx (recommended for CLI tools)
+
+```bash
+pipx install kmtools
+```
+
+### From source
+
+```bash
+git clone https://github.com/trentzz/kmtools.git
+cd kmtools
+pip install .
+```
 
 ### Prerequisites
 
-- Python ≥ 3.10
-- [`km`](https://github.com/iric-soft/km) must be installed and accessible in your `PATH`.
+- Python >= 3.10
+- [`km`](https://github.com/iric-soft/km) must be installed and accessible in your `PATH` (required for `chunk` and `runall` commands).
 
 To install `km` via `pipx`:
 
@@ -32,215 +44,238 @@ To install `km` via `pipx`:
 pipx install km-walk
 ```
 
-Any of the installation methods listed in the `km` documentation will also work.
+---
+
+## Quick Start
+
+```bash
+# Check version
+kmtools --version
+
+# Filter km results against a reference
+kmtools filter \
+    --reference variants.tsv \
+    --km-output km_results.txt \
+    --output filtered.tsv
+
+# Merge multiple km output files
+kmtools merge chunk_0.txt chunk_1.txt chunk_2.txt \
+    --output merged.txt --keep
+
+# Generate plots from filtered results
+kmtools plot filtered.tsv --output-dir plots --charts all
+```
 
 ---
 
-## Overview of Commands
+## Commands
 
-| Command          | Description                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `kmtools chunk`  | Run multiple instances of `km find_mutation` in parallel using target sequence chunking. |
-| `kmtools merge`  | Merge multiple `km` outputs into a combined result.                                      |
-| `kmtools filter` | Filter `km` results based on a reference or other criteria.                              |
-| `kmtools plot`   | Generate visualisations from filtered results.                                           |
-| `kmtools runall` | Run the full pipeline (`chunk → merge → filter → plot`) automatically.                   |
+| Command          | Description                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| `kmtools chunk`  | Run `km find_mutation` in parallel across chunked target sequences                  |
+| `kmtools merge`  | Merge multiple `km` output files into a single result                               |
+| `kmtools filter` | Filter `km` results against a reference variant list                                |
+| `kmtools plot`   | Generate visualisations from filtered results                                       |
+| `kmtools runall` | Run the full pipeline (`chunk` -> `merge` -> `filter` -> `plot`) in a single command |
+
+### Global Flags
+
+| Flag        | Description            |
+| ----------- | ---------------------- |
+| `--version` | Show version and exit  |
+| `--verbose` | Enable verbose logging |
 
 ---
-
-## Usage
 
 ### `kmtools chunk`
 
-Run `km find_mutation` concurrently across multiple threads by splitting target sequences.
+Run `km find_mutation` concurrently across multiple threads by splitting target sequences into pre-split subdirectories.
 
 ```bash
 kmtools chunk \
     --threads 8 \
-    --km-find-mutation-options "--ratio 0.0001 targets_dir database.jf" \
+    --km-find-mutation-options "--ratio 0.0001" \
+    --km-target-directory targets_split \
+    --km-jellyfish-file database.jf \
+    --output-dir output \
+    --prefix km_output \
     --merge \
+    --merge-output merged.txt \
+    --merge-keep \
     --verbose
 ```
 
-### Arguments
-
-| Argument                     | Description                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `--threads`                  | Number of threads (parallel `km` processes).                                                |
-| `--km-find-mutation-options` | Options passed directly to `km find_mutation`. Do **not** include output redirection (`>`). |
-| `--merge`                    | Merge chunked results automatically after processing.                                       |
-| `--verbose`                  | Enable detailed logging and timing information.                                             |
-
-#### Process
-
-1. Splits the list of target sequences into chunks (one per thread).
-2. Runs `km find_mutation` on each chunk in parallel.
-3. Optionally merges all results when complete.
+| Argument                     | Required | Description                                                             |
+| ---------------------------- | -------- | ----------------------------------------------------------------------- |
+| `--threads`                  | Yes      | Number of parallel `km` processes                                       |
+| `--km-find-mutation-options` | Yes      | Options passed directly to `km find_mutation`                           |
+| `--km-target-directory`      | Yes      | Directory containing pre-split target subdirectories (one per thread)   |
+| `--km-jellyfish-file`        | Yes      | Path to the jellyfish k-mer counts file (`.jf`)                        |
+| `--output-dir`               | No       | Directory to save output files (default: `.`)                           |
+| `--prefix`                   | No       | Prefix for output files (default: `km_find_mutation_output`)            |
+| `--merge`                    | No       | Automatically merge chunk outputs after processing                      |
+| `--merge-output`             | No       | Filename for merged output (default: `km_find_mutation_merged_output.txt`) |
+| `--merge-keep`               | No       | Keep intermediate chunk files after merging                             |
 
 ---
 
 ### `kmtools merge`
 
-Combine multiple chunk outputs into a single result file.
+Combine multiple `km` output files into a single result file.
 
 ```bash
-kmtools merge \
-    chunk_*/results.txt \
+kmtools merge chunk_0.txt chunk_1.txt chunk_2.txt \
     --output merged.txt \
+    --keep \
+    --sort-by Min_coverage \
+    --drop-duplicates \
     --verbose
 ```
 
-### Arguments
-
-| Argument    | Description                          |
-| ----------- | ------------------------------------ |
-| `inputs`    | Input files or directories to merge. |
-| `--output`  | Output file for merged data.         |
-| `--verbose` | Enable detailed logging.             |
-
-This is typically used after chunking to combine partial `km` results.
+| Argument            | Required | Description                                        |
+| ------------------- | -------- | -------------------------------------------------- |
+| `inputs`            | Yes      | Input files (positional, supports glob patterns)    |
+| `--output`          | Yes      | Output file for merged results                     |
+| `--keep`            | No       | Keep input files after merging (default: delete)    |
+| `--sort-by`         | No       | Sort merged output by this column name             |
+| `--drop-duplicates` | No       | Remove duplicate rows from merged output           |
 
 ---
 
 ### `kmtools filter`
 
-Filter `km` output based on a reference sequence or other logic.
+Filter `km` output against a reference variant list to identify true positives.
 
 ```bash
 kmtools filter \
-    --reference ref.fa \
+    --reference variants.tsv \
     --km-output merged.txt \
-    --output filtered.txt \
+    --output filtered.tsv \
+    --output-type tsv \
+    --count-threshold 2 \
     --verbose
 ```
 
-### Arguments
+With `--use-alt` mode (matches km sequences directly against provided ALT_SEQUENCE):
 
-| Argument      | Description                       |
-| ------------- | --------------------------------- |
-| `--reference` | Reference FASTA file.             |
-| `--km-output` | Input `km` output file to filter. |
-| `--output`    | Output file for filtered results. |
-| `--verbose`   | Enable detailed logging.          |
+```bash
+kmtools filter \
+    --reference alt_variants.tsv \
+    --km-output merged.txt \
+    --output filtered.tsv \
+    --use-alt
+```
 
-This step removes false positives or unwanted variants.
+| Argument            | Required | Description                                                                 |
+| ------------------- | -------- | --------------------------------------------------------------------------- |
+| `--reference`       | Yes      | Reference file with known variants (`.csv` or `.tsv`)                       |
+| `--km-output`       | Yes      | `km find_mutation` output file to filter                                    |
+| `--output`          | Yes      | Output file for filtered results                                            |
+| `--output-type`     | No       | Output format: `tsv`, `csv`, or `xlsx` (default: `tsv`)                    |
+| `--count-threshold` | No       | Minimum k-mer count for a variant to pass (default: `2`)                    |
+| `--use-alt`         | No       | Use alternate sequence mode (reference needs `CHROM`, `ALT_SEQUENCE`, `TYPE`) |
+
+**Reference file format (standard mode):** TSV/CSV with columns `CHROM`, `POS`, `REF`, `ALT`, `TYPE`
+
+**Reference file format (`--use-alt` mode):** TSV/CSV with columns `CHROM`, `ALT_SEQUENCE`, `TYPE`
+
+See [docs/use-alt-mode.md](docs/use-alt-mode.md) for details on the `--use-alt` workflow.
 
 ---
 
 ### `kmtools plot`
 
-Generate plots and summary charts from filtered results.
+Generate charts from filtered results.
 
 ```bash
-kmtools plot \
-    filtered.txt \
+kmtools plot filtered.tsv \
     --output-dir plots \
-    --charts vaf,patient,sample \
+    --charts vaf,type,sample,overall \
     --verbose
 ```
 
-### Arguments
+| Argument       | Required | Description                                                                      |
+| -------------- | -------- | -------------------------------------------------------------------------------- |
+| `file`         | Yes      | Filtered results file (positional)                                               |
+| `--output-dir` | No       | Directory to save plots (default: `.`)                                           |
+| `--charts`     | No       | Comma-separated chart types: `vaf`, `type`, `sample`, `overall`, or `all` (default: `all`) |
 
-| Argument       | Description                                                                                   |
-| -------------- | --------------------------------------------------------------------------------------------- |
-| `file`         | Filtered results file.                                                                        |
-| `--output-dir` | Directory to save plots (default: current directory).                                         |
-| `--charts`     | Comma-separated list of charts to generate (`vaf`, `patient`, `sample`, `overall`, or `all`). |
-| `--verbose`    | Enable detailed logging.                                                                      |
+**Available chart types:**
 
-Example outputs include:
-
-- `vaf_distribution.png`
-- `patient_summary.png`
-- `sample_overview.png`
+| Chart     | Output file             | Description                                       |
+| --------- | ----------------------- | ------------------------------------------------- |
+| `vaf`     | `vaf_distribution.png`  | Histogram of variant allele frequencies            |
+| `type`    | `type_distribution.png` | Bar chart of variant type counts                   |
+| `sample`  | `sample_summary.png`    | Stacked bar chart of found vs not-found per sample |
+| `overall` | `overall_summary.png`   | Pie chart of overall detection summary             |
 
 ---
 
 ### `kmtools runall`
 
-Run the full workflow — `chunk → merge → filter → plot` — in a single command.
+Run the full pipeline (`chunk` -> `merge` -> `filter` -> `plot`) in a single command.
 
 ```bash
 kmtools runall \
     --threads 8 \
-    --km-find-mutation-options "--ratio 0.0001 targets_dir database.jf" \
-    --merge-inputs chunk_*/results.txt \
+    --km-find-mutation-options "--ratio 0.0001" \
+    --km-target-directory targets_split \
+    --km-jellyfish-file database.jf \
     --merge-output merged.txt \
-    --reference ref.fa \
-    --filtered-output filtered.txt \
+    --reference variants.tsv \
+    --filtered-output filtered.tsv \
+    --output-type tsv \
+    --count-threshold 2 \
     --output-dir plots \
     --charts all \
     --verbose
 ```
 
-### Arguments
-
-| Argument                     | Description                                     |
-| ---------------------------- | ----------------------------------------------- |
-| `--threads`                  | Number of threads for chunking.                 |
-| `--km-find-mutation-options` | Options for `km find_mutation`.                 |
-| `--merge-inputs`             | Files or directories to merge after chunking.   |
-| `--merge-output`             | Output file for merged data.                    |
-| `--reference`                | Reference file for filtering.                   |
-| `--filtered-output`          | Output file for filtered results.               |
-| `--output-dir`               | Directory for plots.                            |
-| `--charts`                   | Charts to generate (default: `all`).            |
-| `--verbose`                  | Enable detailed logging and timing information. |
-
-### Workflow
-
-1. Splits and runs `km find_mutation` in parallel.
-2. Merges chunk results.
-3. Filters merged results using the provided reference.
-4. Generates plots and summaries.
-
----
-
-## Notes and Best Practices
-
-- Always test your `--km-find-mutation-options` with a single `km find_mutation` run before using `kmtools chunk` or `runall`.
-- Use `--working-dir` (if supported) to isolate intermediate outputs.
-- Maintain a consistent output naming scheme to simplify automated merging.
-- Use `--verbose` for debugging and benchmarking; it reports timing and process details.
-
----
-
-## Example Full Workflow
-
-```bash
-kmtools runall \
-  --threads 8 \
-  --km-find-mutation-options "--ratio 0.0001 targets_dir database.jf" \
-  --merge-inputs chunk_*/results.txt \
-  --merge-output merged.txt \
-  --reference ref.fa \
-  --filtered-output filtered.txt \
-  --output-dir plots \
-  --charts all \
-  --verbose
-```
+| Argument                     | Required | Description                                       |
+| ---------------------------- | -------- | ------------------------------------------------- |
+| `--threads`                  | Yes      | Number of parallel threads for chunking            |
+| `--km-find-mutation-options` | Yes      | Options passed to `km find_mutation`               |
+| `--km-target-directory`      | Yes      | Directory containing pre-split target subdirectories |
+| `--km-jellyfish-file`        | Yes      | Path to the jellyfish k-mer counts file (`.jf`)   |
+| `--merge-output`             | Yes      | Output file for merged chunk results               |
+| `--reference`                | Yes      | Reference file with known variants (`.csv`/`.tsv`) |
+| `--filtered-output`          | Yes      | Output file for filtered results                   |
+| `--output-type`              | No       | Output format for filtered results (default: `tsv`) |
+| `--count-threshold`          | No       | Minimum k-mer count threshold (default: `2`)       |
+| `--output-dir`               | No       | Directory to save plots (default: `.`)             |
+| `--charts`                   | No       | Chart types to generate (default: `all`)           |
 
 ---
 
 ## Project Structure
 
 ```text
-kmtools/
+src/kmtools/
 ├── __init__.py
-├── cli.py           # Entry point for all subcommands
-├── chunk.py         # Handles kmtools chunk
-├── merge.py         # Handles kmtools merge
-├── filter.py        # Handles kmtools filter
-├── plot.py          # Handles kmtools plot
-└── utils.py         # Shared utilities (logging, validation, etc.)
+├── kmtools.py        # CLI entry point and argument parsing
+├── chunk.py          # Parallel km find_mutation execution
+├── merge.py          # Merge multiple km output files
+├── filter.py         # Filter km results against reference variants
+├── filter_types.py   # Dataclasses for filter types
+├── plot.py           # Generate charts from filtered results
+├── exceptions.py     # Custom exception classes
+└── utils.py          # Shared utilities (logging, timing)
 ```
+
+---
+
+## Documentation
+
+- [Getting Started](docs/getting-started.md) - Installation and quickstart
+- [Command Reference](docs/commands.md) - Full argument tables for all commands
+- [Use-Alt Mode](docs/use-alt-mode.md) - Guide for `--use-alt` filtering
+- [File Formats](docs/file-formats.md) - All input/output file format specifications
+- [Testing & Benchmarking](docs/testing-and-benchmarking.md) - Test suite and performance benchmarks
 
 ---
 
 ## Future Plans
 
 - Automatic detection of chunk outputs in `runall`
-- Multiprocessing backend for chunking
-- Extended filtering and visualisation modules
-- Support for JSON and TSV output formats
-
+- Support for alternate `km` subcommands beyond `find_mutation`
+- Additional plot types and export formats
