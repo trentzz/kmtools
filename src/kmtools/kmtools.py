@@ -17,7 +17,7 @@ from kmtools.utils import Utils
 
 def _get_version() -> str:
     try:
-        return version("kmtools")
+        return version("kmtools-bio")
     except PackageNotFoundError:
         return "dev"
 

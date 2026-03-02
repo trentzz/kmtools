@@ -16,13 +16,13 @@ A toolkit for running, filtering, merging, and plotting [`km find_mutation`](htt
 ### From PyPI
 
 ```bash
-pip install kmtools
+pip install kmtools-bio
 ```
 
 ### Using pipx (recommended for CLI tools)
 
 ```bash
-pipx install kmtools
+pipx install kmtools-bio
 ```
 
 ### From source

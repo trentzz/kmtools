@@ -130,7 +130,7 @@ poetry run python benchmarks/run_benchmarks.py
 
 1. Ensure all tests pass: `poetry run pytest -v`
 2. Build the package: `poetry build`
-3. Verify the wheel: `pip install dist/kmtools-*.whl && kmtools --version`
+3. Verify the wheel: `pip install dist/kmtools_bio-*.whl && kmtools --version`
 4. Tag and push a release:
 
 ```bash

@@ -10,13 +10,13 @@
 ### From PyPI (recommended)
 
 ```bash
-pip install kmtools
+pip install kmtools-bio
 ```
 
 ### Using pipx (isolated environment)
 
 ```bash
-pipx install kmtools
+pipx install kmtools-bio
 ```
 
 ### From source

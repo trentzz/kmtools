@@ -1,5 +1,5 @@
 [project]
-name = "kmtools"
+name = "kmtools-bio"
 version = "0.1.0"
 description = "A toolkit for running, filtering, merging, and plotting km find_mutation results."
 authors = [
