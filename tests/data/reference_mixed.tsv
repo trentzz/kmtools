@@ -1,0 +1,5 @@
+CHROM	POS	REF	ALT	TYPE
+chr1	114716126	C	T	Substitution
+chr3	178936091	AGG	A	Deletion
+chr7	140453136	T	TA	Insertion
+chr12	25398284	C	A	Substitution
